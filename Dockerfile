@@ -26,6 +26,8 @@ RUN cd /tmp \
     && echo "${GOLANG_SHA256}  go${GOLANG_VERSION}.linux-arm64.tar.gz" | sha256sum -c - \
     && tar -C /usr/local -xzf /tmp/go${GOLANG_VERSION}.linux-arm64.tar.gz
 
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # package build
 RUN go install -v github.com/caddyserver/xcaddy/cmd/xcaddy@latest \
     && /root/go/bin/xcaddy build v${CADDY_VERSION} \

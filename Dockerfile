@@ -10,7 +10,6 @@ ARG GOLANG_VERSION="1.17.6"
 ARG GOLANG_SHA256="82c1a033cce9bc1b47073fd6285233133040f0378439f3c4659fe77cc534622a"
 
 ARG CADDY_VERSION="2.4.6"
-ARG CORAZA_VERSION="1.0.0"
 
 # basic build infra
 RUN apt-get -y update \
@@ -28,16 +27,21 @@ RUN cd /tmp \
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+# basic build deps
+RUN apt-get -y update \
+    && apt-get -y install libpcre++-dev
+
 # package build
 RUN go install -v github.com/caddyserver/xcaddy/cmd/xcaddy@latest \
-    && /root/go/bin/xcaddy build v${CADDY_VERSION} \
+    && CGO_ENABLED=1 /root/go/bin/xcaddy build v${CADDY_VERSION} \
     --output /tmp/caddy \
-    --with github.com/jptosso/coraza-caddy@v${CORAZA_VERSION}
+    --with github.com/jptosso/coraza-caddy@master --with github.com/jptosso/coraza-pcre@master --with github.com/jptosso/coraza-libinjection@master
 
 # package install
 RUN cd /tmp \
-    && install -D -m 0755 ./caddy /install/usr/bin/caddy \
-    && fpm -s dir -t deb -C /install --name coraza-caddy --version 1 --iteration ${CORAZA_VERSION} \
+    && mkdir -p /install/var/www/html \
+    && install -D -m 0755 /tmp/caddy /install/usr/bin/caddy \
+    && fpm -s dir -t deb -C /install --name coraza-caddy --version ${CADDY_VERSION} --iteration 4 --depends "libpcre32-3" \
        --description "Caddy HTTP server with the coraza plugin built in"
 
 STOPSIGNAL SIGTERM
